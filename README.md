@@ -19,18 +19,42 @@
 
 ```
 Linux_Ring/
-├── main.py                 # Application entry point
-├── core/                   # Backend logic (Managers)
-│   ├── firewall_manager.py
-│   ├── service_manager.py
-│   ├── tool_installer.py
-│   └── ...
-├── ui/                     # PySide6 Frontend
-│   ├── main_window.py
-│   ├── dashboard.py
-│   └── [feature]_view.py
-├── assets/                 # Configuration and Styles
-└── logs/                   # Application logs
+├── main.py                     # Application entry point
+├── requirements.txt            # Python dependencies
+├── core/                       # Backend logic (Managers)
+│   ├── __init__.py
+│   ├── firewall_manager.py     # Firewall control logic (UFW/Iptables)
+│   ├── process_manager.py      # System process monitoring and control
+│   ├── profile_manager.py      # Security profile management
+│   ├── service_manager.py      # System service management (systemd)
+│   ├── sudo_manager.py         # Privilege elevation handling
+│   ├── task_queue.py           # Background task processing
+│   ├── tool_installer.py       # Security tool installation logic
+│   └── user_manager.py         # User and group management
+├── ui/                         # PySide6 Frontend
+│   ├── __init__.py
+│   ├── main_window.py          # Main application window
+│   ├── sidebar.py              # Navigation sidebar
+│   ├── dashboard.py            # Dashboard view
+│   ├── tools_view.py           # Tools management view
+│   ├── services_view.py        # Services management view
+│   ├── users_view.py           # Users management view
+│   ├── processes_view.py       # Processes list view
+│   ├── profiles_view.py        # Security profiles view
+│   ├── logs_view.py            # Application logs view
+│   ├── updates_view.py         # System updates view
+│   ├── system_view.py          # System information view
+│   ├── task_queue_view.py      # Task queue monitoring view
+│   ├── terminal.py             # Embedded terminal widget
+│   ├── about_view.py           # About page
+│   ├── dialogs.py              # Custom dialogs and popups
+│   └── widgets/                # Reusable UI widgets
+│       └── charts.py
+├── assets/                     # Configuration and Resources
+│   ├── styles.qss              # Qt Stylesheet
+│   ├── tools_catalog.yml       # Catalog of installable tools
+│   └── icons/                  # Application icons
+└── logs/                       # Application logs directory
 ```
 
 ## Requirements
