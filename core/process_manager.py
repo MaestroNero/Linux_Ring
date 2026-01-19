@@ -23,9 +23,21 @@ class ProcessManager:
         return processes[:limit]
 
     def terminate_process(self, pid: int) -> None:
-        proc = psutil.Process(pid)
-        self.logger.info("Terminating PID %s", pid)
-        proc.terminate()
+        try:
+            proc = psutil.Process(pid)
+            self.logger.info("Terminating PID %s...", pid)
+            proc.terminate()
+            try:
+                proc.wait(timeout=3)
+            except psutil.TimeoutExpired:
+                self.logger.warning("PID %s did not terminate gracefully, killing...", pid)
+                proc.kill()
+        except psutil.NoSuchProcess:
+            self.logger.warning("Failed to terminate: PID %s does not exist.", pid)
+        except psutil.AccessDenied:
+            self.logger.error("Failed to terminate: Access denied for PID %s.", pid)
+        except Exception as e:
+            self.logger.error("Error terminating PID %s: %s", pid, str(e))
 
     def get_system_metrics(self) -> dict:
         cpu = psutil.cpu_percent(interval=0.1)

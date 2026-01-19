@@ -1,7 +1,7 @@
 import subprocess
 import logging
 from typing import Optional
-from PySide6.QtCore import QObject, Qt, Signal, Slot, QEventLoop, QTimer
+from PySide6.QtCore import QObject, Qt, Signal, Slot, QEventLoop, QTimer, QThread
 from PySide6.QtWidgets import QInputDialog, QLineEdit, QApplication
 
 class SudoManager(QObject):
@@ -27,8 +27,26 @@ class SudoManager(QObject):
             self.initialized = True
             self._pending_password = None
             
+            # Security: Timer to clear password from memory after 5 minutes of inactivity
+            self._auth_timeout_timer = QTimer(self)
+            self._auth_timeout_timer.setInterval(5 * 60 * 1000)  # 5 minutes
+            self._auth_timeout_timer.timeout.connect(self.clear_password_cache)
+            
             # Connect signal to slot
             self.password_requested.connect(self._show_password_dialog, type=Qt.BlockingQueuedConnection)
+
+    @Slot()
+    def clear_password_cache(self):
+        """Clears the cached password for security."""
+        if self.password:
+            self.password = None
+            self.logger.info("Sudo password cache cleared due to timeout.")
+
+    def _refresh_auth_timer(self):
+        """Resets the inactivity timer."""
+        if self._auth_timeout_timer.isActive():
+            self._auth_timeout_timer.stop()
+        self._auth_timeout_timer.start()
 
     @Slot(str)
     def _show_password_dialog(self, prompt_msg: str):
@@ -59,16 +77,57 @@ class SudoManager(QObject):
 
         # Emit signal and wait for response
         self._pending_password = None
-        self.password_requested.emit(prompt_msg)
+        
+        if QThread.currentThread() == QApplication.instance().thread():
+             # We are on the main thread, call directly to avoid deadlock
+            self._show_password_dialog(prompt_msg)
+        else:
+             # We are on a background thread, emit blocking signal
+            self.password_requested.emit(prompt_msg)
         
         # The signal is connected with BlockingQueuedConnection, so it executes synchronously
         # and _pending_password is already set when we get here
         
         if self._pending_password:
             self.password = self._pending_password
+            self._refresh_auth_timer()
             return self.password
         
         return None
+
+    def validate_credentials(self) -> bool:
+        """
+        Validates the currently cached password using 'sudo -v'.
+        Returns True if successful, False otherwise.
+        """
+        if not self.password:
+            return False
+            
+        try:
+            # sudo -S -v reads password from stdin and validates it
+            # -S: read password from stdin
+            # -v: validate only (update timestamp)
+            # -p: prompt prefix (empty to avoid confusion)
+            cmd = ["sudo", "-S", "-v", "-p", ""]
+            
+            res = subprocess.run(
+                cmd,
+                input=f"{self.password}\n",
+                text=True,
+                capture_output=True,
+                timeout=5
+            )
+            
+            if res.returncode == 0:
+                self._refresh_auth_timer()
+                return True
+            else:
+                self.logger.warning(f"Password validation failed. stderr: {res.stderr}")
+                return False
+                
+        except Exception as e:
+            self.logger.error(f"Error during password validation: {e}")
+            return False
     
     def run_privileged(self, command: list[str]) -> subprocess.CompletedProcess:
         """
@@ -102,6 +161,7 @@ class SudoManager(QObject):
                     continue
                 
                 # Password is correct! Now run the actual command
+                self._refresh_auth_timer()
                 self.logger.info(f"Password validated. Running privileged: {' '.join(command)}")
                 full_command = ["sudo", "-S", "-p", ""] + command
                 
@@ -160,6 +220,7 @@ class SudoManager(QObject):
                     continue
                 
                 # Password validated! Run actual command
+                self._refresh_auth_timer()
                 log_callback("[auth] Credentials validated. Starting operation...")
                 full_command = ["sudo", "-S", "-p", ""] + command
                 

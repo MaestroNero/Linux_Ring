@@ -7,8 +7,8 @@ class CPUChart(QWidget):
         super().__init__(parent)
         self.setMinimumHeight(150)
         self.history = [0] * 60  # Store last 60 data points
-        self.accent_color = QColor("#268bd2")  # Kali Blue
-        self.bg_color = QColor("#1e1e1e")
+        self.accent_color = QColor("#8b5cf6")  # Neon Purple
+        self.bg_color = QColor(0, 0, 0, 0) # Transparent
 
     def update_value(self, value):
         self.history.append(value)
@@ -75,7 +75,7 @@ class CircularGauge(QWidget):
         self.setMinimumSize(120, 120)
         self.value = 0
         self.title = title
-        self.color = QColor("#268bd2")
+        self.color = QColor("#38bdf8") # Sky Blue
 
     def set_value(self, val):
         self.value = val
@@ -96,7 +96,7 @@ class CircularGauge(QWidget):
         painter.scale(side / 100.0, side / 100.0)
 
         # Background Arc
-        pen_bg = QPen(QColor(50, 50, 50))
+        pen_bg = QPen(QColor(255, 255, 255, 30))
         pen_bg.setWidth(8)
         pen_bg.setCapStyle(Qt.RoundCap)
         painter.setPen(pen_bg)

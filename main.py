@@ -1,102 +1,149 @@
-import logging
-import os
 import sys
+import os
+import signal
+import logging
+import datetime
+
+# Silence noisy Wayland warnings before QApplication initializes
+os.environ["QT_LOGGING_RULES"] = "qt.qpa.wayland.textinput=false"
 
 from PySide6.QtWidgets import QApplication
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QIcon, QFontDatabase
 from PySide6.QtCore import QObject, Signal
 
 from ui.main_window import MainWindow
-from core.user_manager import UserManager
-from core.service_manager import ServiceManager
-from core.tool_installer import ToolInstaller
-from core.profile_manager import ProfileManager
 from core.process_manager import ProcessManager
+from core.service_manager import ServiceManager
+from core.user_manager import UserManager
+from core.tool_installer import ToolInstaller
 from core.firewall_manager import FirewallManager
+from core.profile_manager import ProfileManager
+from core.sudo_manager import SudoManager  # New Graphical Sudo Manager
 
 
 class LogEmitter(QObject):
-    """Qt signal bridge for Python logging."""
-
     message = Signal(str)
 
 
-class QtLogHandler(logging.Handler):
-    """Logging handler that forwards messages to Qt UI."""
-
-    def __init__(self, emitter: LogEmitter):
+class SignalHandler(logging.Handler):
+    def __init__(self, emitter):
         super().__init__()
         self.emitter = emitter
 
-    def emit(self, record: logging.LogRecord) -> None:
-        try:
-            msg = self.format(record)
-            self.emitter.message.emit(msg)
-        except Exception:  # pragma: no cover - defensive
-            self.handleError(record)
+    def emit(self, record):
+        msg = self.format(record)
+        self.emitter.message.emit(msg)
 
 
-def setup_logging(emitter: LogEmitter) -> logging.Logger:
-    os.makedirs("logs", exist_ok=True)
-    formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(message)s")
-
-    logger = logging.getLogger("secure_kali_manager")
+def setup_logging():
+    logger = logging.getLogger("MaestroManager")
     logger.setLevel(logging.INFO)
-    logger.propagate = False
 
-    # File sink
-    file_handler = logging.FileHandler("logs/app.log")
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
 
-    # Qt sink
-    qt_handler = QtLogHandler(emitter)
-    qt_handler.setFormatter(formatter)
-    logger.addHandler(qt_handler)
+    # 1. Console Handler
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
 
-    return logger
+    # 2. File Handler (New) - Rotating
+    log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "logs")
+    os.makedirs(log_dir, exist_ok=True)
+    
+    date_str = datetime.datetime.now().strftime("%Y-%m-%d")
+    log_file = os.path.join(log_dir, f"session_{date_str}.log")
+    
+    # 5 MB max size, keep last 3 backups
+    from logging.handlers import RotatingFileHandler
+    fh = RotatingFileHandler(log_file, maxBytes=5*1024*1024, backupCount=3)
+    fh.setFormatter(formatter)
+    logger.addHandler(fh)
+
+    # 3. GUI Signal Handler
+    emitter = LogEmitter()
+    sh = SignalHandler(emitter)
+    sh.setFormatter(formatter)
+    logger.addHandler(sh)
+
+    return logger, emitter
 
 
-def load_stylesheet(app: QApplication) -> None:
-    style_path = os.path.join("assets", "styles.qss")
-    if not os.path.exists(style_path):
-        return
+def main():
+    # Handle Ctrl+C
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
+
+    app = QApplication(sys.argv)
+    
+    # Load fonts if needed
+    # QFontDatabase.addApplicationFont("assets/fonts/MyFont.ttf")
+
+    # Load Styles
     try:
-        with open(style_path, "r", encoding="utf-8") as f:
+        with open("assets/styles.qss", "r") as f:
             app.setStyleSheet(f.read())
-    except Exception as exc:  # pragma: no cover - defensive
-        print(f"Could not load stylesheet: {exc}")
+    except FileNotFoundError:
+        print("Warning: styles.qss not found, using default look.")
 
+    logger, emitter = setup_logging()
+    logger.info("Starting Linux Ring By Maestro Nero...")
 
-def build_managers(logger: logging.Logger) -> dict:
-    firewall = FirewallManager(logger)
+    # Initialize Core Managers
+    logger.info("Initializing Sudo Manager...")
+    sudo_manager = SudoManager() # Singleton-like usage
+    
+    # --- STARTUP AUTHENTICATION ---
+    # Ask for root password immediately at startup
+    logger.info("Requesting root privileges for session...")
+    
+    authenticated = False
+    max_retries = 3
+    
+    for attempt in range(max_retries):
+        # Force prompt on retry
+        should_force = (attempt > 0)
+        pwd = sudo_manager.get_password(force_prompt=should_force)
+        
+        if not pwd:
+            break # User cancelled
+            
+        if sudo_manager.validate_credentials():
+            authenticated = True
+            logger.info("Root privileges acquired and validated.")
+            break
+        else:
+            logger.warning(f"Invalid password attempt {attempt + 1}/{max_retries}")
+            sudo_manager.clear_password_cache()
+            
+    if not authenticated:
+        logger.warning("Root authentication failed or cancelled. Some features may not work.")
+    # ------------------------------
+
+    # Check privileges (optional, since we now handle sudo graphically)
+    if os.geteuid() != 0:
+        logger.info("Running as non-root user. Privileged operations will prompt for password.")
+
+    # Instantiate managers individually
+    firewall_mgr = FirewallManager(logger)
     service_mgr = ServiceManager(logger)
     user_mgr = UserManager(logger)
     process_mgr = ProcessManager(logger)
     tool_installer = ToolInstaller(logger)
-    profile_mgr = ProfileManager(logger, user_mgr, service_mgr, firewall, tool_installer)
+    
+    # ProfileManager needs references to others
+    profile_mgr = ProfileManager(logger, user_mgr, service_mgr, firewall_mgr, tool_installer)
 
-    return {
-        "users": user_mgr,
-        "services": service_mgr,
-        "tools": tool_installer,
-        "profiles": profile_mgr,
+    managers = {
         "processes": process_mgr,
-        "firewall": firewall,
+        "services": service_mgr,
+        "users": user_mgr,
+        "tools": tool_installer,
+        "firewall": firewall_mgr,
+        "profiles": profile_mgr, 
     }
 
 
-def main() -> int:
-    app = QApplication(sys.argv)
-    app.setApplicationName("Secure Kali Manager")
-    app.setApplicationDisplayName("Secure Kali Manager")
-    app.setWindowIcon(QIcon())
-
-    emitter = LogEmitter()
-    logger = setup_logging(emitter)
-    managers = build_managers(logger)
-
-    load_stylesheet(app)
 
     window = MainWindow(managers, emitter, logger)
     emitter.message.connect(window.append_log)

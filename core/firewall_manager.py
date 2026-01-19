@@ -1,32 +1,57 @@
+import logging
 import subprocess
+from typing import Callable
+from core.sudo_manager import SudoManager
 
 
 class FirewallManager:
-    def __init__(self, logger):
+    """
+    Manages system firewall using ufw (Uncomplicated Firewall).
+    """
+
+    def __init__(self, logger: logging.Logger):
         self.logger = logger
+        self.sudo_manager = SudoManager()
+        self._check_ufw_installed()
 
-    def _run(self, command: list[str]) -> subprocess.CompletedProcess:
-        self.logger.info("Running: %s", " ".join(command))
-        return subprocess.run(command, check=True, text=True, capture_output=True)
+    def _check_ufw_installed(self):
+        """Checks if ufw is installed and logs a warning if not."""
+        import shutil
+        if not shutil.which("ufw"):
+            self.logger.warning("UFW is not installed or not in PATH. Firewall operations will fail.")
 
-    def enable_firewall(self, log) -> None:
-        log("Enabling ufw with deny-by-default policy")
-        self._run(["sudo", "ufw", "default", "deny", "incoming"])
-        self._run(["sudo", "ufw", "default", "allow", "outgoing"])
-        self._run(["sudo", "ufw", "--force", "enable"])
+    def enable_firewall(self, log_callback: Callable[[str], None]) -> None:
+        """
+        Enable ufw with default deny incoming / allow outgoing policy.
+        """
+        log_callback("Enabling ufw with deny-by-default policy")
+        self.sudo_manager.run_privileged(["ufw", "default", "deny", "incoming"])
+        self.sudo_manager.run_privileged(["ufw", "default", "allow", "outgoing"])
+        self.sudo_manager.run_privileged(["ufw", "--force", "enable"])
+        log_callback("Firewall enabled successfully.")
 
-    def allow_ports(self, ports: list[int], log) -> None:
+    def allow_ports(self, ports: list[int], log_callback: Callable[[str], None]) -> None:
+        """
+        Allow specific TCP ports.
+        """
         for port in ports:
-            log(f"Allowing port {port}/tcp")
-            self._run(["sudo", "ufw", "allow", f"{port}/tcp"])
+            log_callback(f"Allowing port {port}/tcp")
+            self.sudo_manager.run_privileged(["ufw", "allow", f"{port}/tcp"])
 
-    def close_ports(self, ports: list[int], log) -> None:
+    def close_ports(self, ports: list[int], log_callback: Callable[[str], None]) -> None:
+        """
+        Deny specific TCP ports.
+        """
         for port in ports:
-            log(f"Denying port {port}/tcp")
-            self._run(["sudo", "ufw", "deny", f"{port}/tcp"])
+            log_callback(f"Denying port {port}/tcp")
+            self.sudo_manager.run_privileged(["ufw", "deny", f"{port}/tcp"])
 
-    def close_all_except(self, allowed: list[int], log) -> None:
-        log("Closing all ports except minimal allow list")
-        self._run(["sudo", "ufw", "--force", "reset"])
-        self.enable_firewall(log)
-        self.allow_ports(allowed, log)
+    def close_all_except(self, allowed: list[int], log_callback: Callable[[str], None]) -> None:
+        """
+        Reset firewall and allow only specified ports.
+        """
+        log_callback("Closing all ports except minimal allow list")
+        self.sudo_manager.run_privileged(["ufw", "--force", "reset"])
+        self.enable_firewall(log_callback)
+        self.allow_ports(allowed, log_callback)
+

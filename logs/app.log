@@ -1,1 +1,42 @@
-2026-01-16 16:13:55,977 [INFO] Secure Kali Linux Environment Manager started.
+2026-01-12 00:52:44,283 [INFO] Secure Kali Linux Environment Manager started.
+2026-01-12 00:53:11,032 [INFO] Update Nmap...
+2026-01-12 00:53:11,033 [INFO] Running: sudo apt-get install --only-upgrade -y nmap
+2026-01-12 00:54:57,962 [ERROR] Update failed for Nmap: Command '['sudo', 'apt-get', 'install', '--only-upgrade', '-y', 'nmap']' returned non-zero exit status 1.
+2026-01-12 00:59:14,923 [INFO] Running: sudo apt-get update
+2026-01-12 01:17:40,444 [INFO] Secure Kali Linux Environment Manager started.
+2026-01-12 01:17:56,426 [INFO] Running: sudo apt-get update
+2026-01-12 01:18:29,908 [INFO] Ign:1 https://repo.nordvpn.com/deb/nordvpn/debian stable InRelease
+2026-01-12 01:18:30,127 [INFO] Hit:2 http://137.226.34.46/kali kali-rolling InRelease
+2026-01-12 01:18:30,318 [INFO] Hit:3 https://packages.microsoft.com/repos/code stable InRelease
+2026-01-12 01:18:31,136 [INFO] Ign:1 https://repo.nordvpn.com/deb/nordvpn/debian stable InRelease
+2026-01-12 01:18:31,751 [INFO] Hit:4 https://us-central1-apt.pkg.dev/projects/antigravity-auto-updater-dev antigravity-debian InRelease
+2026-01-12 01:18:33,298 [INFO] Ign:1 https://repo.nordvpn.com/deb/nordvpn/debian stable InRelease
+2026-01-12 01:18:37,383 [INFO] Err:1 https://repo.nordvpn.com/deb/nordvpn/debian stable InRelease
+2026-01-12 01:18:37,384 [INFO] Could not resolve 'repo.nordvpn.com'
+2026-01-12 01:18:40,008 [INFO] Reading package lists...
+2026-01-12 01:18:40,030 [INFO] W: Failed to fetch https://repo.nordvpn.com/deb/nordvpn/debian/dists/stable/InRelease  Could not resolve 'repo.nordvpn.com'
+2026-01-12 01:18:40,030 [INFO] W: Some index files failed to download. They have been ignored, or old ones used instead.
+2026-01-12 01:18:40,033 [INFO] update completed
+2026-01-12 01:24:42,391 [INFO] Secure Kali Linux Environment Manager started.
+2026-01-12 01:26:14,354 [INFO] Secure Kali Linux Environment Manager started.
+2026-01-12 01:26:41,304 [INFO] Running: sudo apt-get update
+2026-01-12 01:26:41,834 [INFO] Ign:1 https://repo.nordvpn.com/deb/nordvpn/debian stable InRelease
+2026-01-12 01:26:42,051 [INFO] Hit:2 http://137.226.34.46/kali kali-rolling InRelease
+2026-01-12 01:26:42,244 [INFO] Hit:3 https://packages.microsoft.com/repos/code stable InRelease
+2026-01-12 01:26:42,960 [INFO] Ign:1 https://repo.nordvpn.com/deb/nordvpn/debian stable InRelease
+2026-01-12 01:26:43,780 [INFO] Hit:4 https://us-central1-apt.pkg.dev/projects/antigravity-auto-updater-dev antigravity-debian InRelease
+2026-01-12 01:26:45,111 [INFO] Ign:1 https://repo.nordvpn.com/deb/nordvpn/debian stable InRelease
+2026-01-12 01:26:49,310 [INFO] Err:1 https://repo.nordvpn.com/deb/nordvpn/debian stable InRelease
+2026-01-12 01:26:49,310 [INFO] Could not resolve 'repo.nordvpn.com'
+2026-01-12 01:26:50,801 [INFO] Reading package lists...
+2026-01-12 01:26:50,813 [INFO] W: Failed to fetch https://repo.nordvpn.com/deb/nordvpn/debian/dists/stable/InRelease  Could not resolve 'repo.nordvpn.com'
+2026-01-12 01:26:50,814 [INFO] W: Some index files failed to download. They have been ignored, or old ones used instead.
+2026-01-12 01:26:50,816 [INFO] update completed
+2026-01-12 01:30:04,242 [ERROR] Failed to add user nano: User cancelled password prompt or provided empty password.
+2026-01-12 01:37:06,012 [INFO] Secure Kali Linux Environment Manager started.
+2026-01-12 01:45:49,536 [INFO] Install Nikto...
+2026-01-12 01:46:03,042 [INFO] Running stream: apt-get update
+2026-01-12 01:46:11,872 [INFO] Running stream: apt-get install -y nikto
+2026-01-12 01:46:12,816 [INFO] Nikto installed successfully
+2026-01-12 01:52:18,297 [INFO] Secure Kali Linux Environment Manager started.
+2026-01-12 01:59:08,913 [INFO] Secure Kali Linux Environment Manager started.
