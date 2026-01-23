@@ -28,29 +28,29 @@ class NetworkTable(QTableWidget):
         self.verticalHeader().setVisible(False)
         self.setStyleSheet("""
             QTableWidget { 
-                background-color: #001f27;
-                alternate-background-color: #073642;
-                gridline-color: #0d6f7c;
-                color: #eee8d5;
-                border: 2px solid #0d6f7c;
-                border-radius: 6px;
+                background-color: rgba(15, 23, 42, 0.8);
+                alternate-background-color: rgba(30, 41, 59, 0.6);
+                gridline-color: rgba(255, 255, 255, 0.05);
+                color: #e2e8f0;
+                border: 1px solid rgba(56, 189, 248, 0.2);
+                border-radius: 8px;
             }
             QHeaderView::section {
                 background: qlineargradient(
                     x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #073642, stop:1 #001f27
+                    stop:0 rgba(51, 65, 85, 0.9), stop:1 rgba(30, 41, 59, 0.9)
                 );
-                color: #2aa198;
+                color: #38bdf8;
                 font-weight: bold;
                 font-size: 13px;
                 border: none;
-                padding: 8px;
+                padding: 10px;
             }
             QTableWidget::item {
-                padding: 5px;
+                padding: 8px;
             }
             QTableWidget::item:selected {
-                background-color: #0a4f5c;
+                background-color: rgba(56, 189, 248, 0.2);
                 color: #ffffff;
             }
         """)
@@ -155,36 +155,93 @@ class SystemView(QWidget):
         super().__init__()
         
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 10, 0, 0)
+        layout.setContentsMargins(25, 25, 25, 25)
+        layout.setSpacing(20)
         
-        # Header with Refresh
-        header = QHBoxLayout()
-        title = QLabel("<h2>System Monitor</h2>")
-        title.setStyleSheet("color: #268bd2;")
-        header.addWidget(title)
-        header.addStretch()
-        refresh_btn = QPushButton("Refresh Data")
+        # Header Frame
+        from PySide6.QtWidgets import QFrame
+        header_frame = QFrame()
+        header_frame.setStyleSheet("""
+            QFrame {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, 
+                    stop:0 rgba(30, 41, 59, 0.8), 
+                    stop:1 rgba(51, 65, 85, 0.6));
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 16px;
+            }
+        """)
+        header_layout = QHBoxLayout(header_frame)
+        header_layout.setContentsMargins(20, 15, 20, 15)
+        
+        title_box = QVBoxLayout()
+        title = QLabel("📊 System Monitor")
+        title.setStyleSheet("font-size: 20px; font-weight: bold; color: #38bdf8; background: transparent;")
+        title_box.addWidget(title)
+        
+        subtitle = QLabel("Services, processes, and network connections")
+        subtitle.setStyleSheet("color: #64748b; font-size: 13px; background: transparent;")
+        title_box.addWidget(subtitle)
+        
+        header_layout.addLayout(title_box)
+        header_layout.addStretch()
+        
+        refresh_btn = QPushButton("🔄 Refresh All")
+        refresh_btn.setCursor(Qt.PointingHandCursor)
+        refresh_btn.setStyleSheet("""
+            QPushButton {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #0ea5e9, stop:1 #38bdf8);
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 8px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #38bdf8, stop:1 #7dd3fc);
+            }
+        """)
         refresh_btn.clicked.connect(self.refresh_all)
-        header.addWidget(refresh_btn)
-        layout.addLayout(header)
+        header_layout.addWidget(refresh_btn)
+        
+        layout.addWidget(header_frame)
         
         # Tabs
         self.tabs = QTabWidget()
         self.tabs.setStyleSheet("""
-            QTabWidget::pane { border: 1px solid #073642; top: -1px; }
-            QTabBar::tab { background: #002b36; color: #839496; padding: 8px 20px; border-top-left-radius: 4px; border-top-right-radius: 4px; }
-            QTabBar::tab:selected { background: #073642; color: #268bd2; font-weight: bold; }
+            QTabWidget::pane { 
+                border: 1px solid rgba(255, 255, 255, 0.1); 
+                background: rgba(30, 41, 59, 0.5);
+                border-radius: 8px;
+            }
+            QTabBar::tab { 
+                background: rgba(51, 65, 85, 0.5); 
+                color: #94a3b8; 
+                padding: 12px 24px; 
+                border: none;
+                border-top-left-radius: 8px; 
+                border-top-right-radius: 8px;
+                margin-right: 2px;
+            }
+            QTabBar::tab:selected { 
+                background: rgba(56, 189, 248, 0.2); 
+                color: #38bdf8; 
+                font-weight: bold; 
+            }
+            QTabBar::tab:hover:!selected {
+                background: rgba(71, 85, 105, 0.6);
+                color: #e2e8f0;
+            }
         """)
         
         self.services_view = ServicesView(service_manager, logger)
         self.processes_view = ProcessesView(process_manager, logger)
         
-        self.tabs.addTab(self.services_view, "Services")
-        self.tabs.addTab(self.processes_view, "Processes")
+        self.tabs.addTab(self.services_view, "⚙️ Services")
+        self.tabs.addTab(self.processes_view, "📋 Processes")
         
         # Network Tab
         self.network_table = NetworkTable()
-        self.tabs.addTab(self.network_table, "Network Connections")
+        self.tabs.addTab(self.network_table, "🌐 Network Connections")
         
         layout.addWidget(self.tabs)
 

@@ -7,7 +7,7 @@ import datetime
 # Silence noisy Wayland warnings before QApplication initializes
 os.environ["QT_LOGGING_RULES"] = "qt.qpa.wayland.textinput=false"
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QMessageBox
 from PySide6.QtGui import QIcon, QFontDatabase
 from PySide6.QtCore import QObject, Signal
 
@@ -19,7 +19,7 @@ from core.tool_installer import ToolInstaller
 from core.firewall_manager import FirewallManager
 from core.profile_manager import ProfileManager
 from core.sudo_manager import SudoManager  # New Graphical Sudo Manager
-
+from core.utils import resource_path
 
 class LogEmitter(QObject):
     message = Signal(str)
@@ -81,10 +81,11 @@ def main():
 
     # Load Styles
     try:
-        with open("assets/styles.qss", "r") as f:
+        style_path = resource_path("assets/styles.qss")
+        with open(style_path, "r") as f:
             app.setStyleSheet(f.read())
     except FileNotFoundError:
-        print("Warning: styles.qss not found, using default look.")
+        print(f"Warning: styles.qss not found at {style_path}, using default look.")
 
     logger, emitter = setup_logging()
     logger.info("Starting Linux Ring By Maestro Nero...")
@@ -93,35 +94,15 @@ def main():
     logger.info("Initializing Sudo Manager...")
     sudo_manager = SudoManager() # Singleton-like usage
     
-    # --- STARTUP AUTHENTICATION ---
-    # Ask for root password immediately at startup
-    logger.info("Requesting root privileges for session...")
-    
-    authenticated = False
-    max_retries = 3
-    
-    for attempt in range(max_retries):
-        # Force prompt on retry
-        should_force = (attempt > 0)
-        pwd = sudo_manager.get_password(force_prompt=should_force)
-        
-        if not pwd:
-            break # User cancelled
-            
-        if sudo_manager.validate_credentials():
-            authenticated = True
-            logger.info("Root privileges acquired and validated.")
-            break
-        else:
-            logger.warning(f"Invalid password attempt {attempt + 1}/{max_retries}")
-            sudo_manager.clear_password_cache()
-            
-    if not authenticated:
-        logger.warning("Root authentication failed or cancelled. Some features may not work.")
-    # ------------------------------
+    # --- NO STARTUP AUTHENTICATION ---
+    # The app will request sudo when needed for specific operations
+    # This allows the app to start quickly and only prompt when necessary
+    logger.info("Linux Ring initialized. Sudo will be requested when needed.")
 
-    # Check privileges (optional, since we now handle sudo graphically)
-    if os.geteuid() != 0:
+    # Check if running as root
+    if os.geteuid() == 0:
+        logger.info("Running as root - full privileges available.")
+    else:
         logger.info("Running as non-root user. Privileged operations will prompt for password.")
 
     # Instantiate managers individually
@@ -143,13 +124,13 @@ def main():
         "profiles": profile_mgr, 
     }
 
-
-
     window = MainWindow(managers, emitter, logger)
     emitter.message.connect(window.append_log)
-    window.show()
+    
+    # Maximize window for better visibility
+    window.showMaximized()
 
-    logger.info("Secure Kali Linux Environment Manager started.")
+    logger.info("Linux Ring started successfully.")
     return app.exec()
 
 

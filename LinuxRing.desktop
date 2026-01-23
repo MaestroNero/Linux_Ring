@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Linux Ring
+Comment=Security & System Manager for Kali Linux
+# Assume installed to /opt/LinuxRing
+Exec=sudo /opt/LinuxRing/LinuxRing
+Icon=/opt/LinuxRing/assets/icons/logo.png
+Terminal=false
+Type=Application
+Categories=System;Security;
+Keywords=security;admin;monitoring;
+StartupNotify=true

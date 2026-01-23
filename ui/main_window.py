@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QMainWindow,
@@ -6,7 +6,11 @@ from PySide6.QtWidgets import (
     QStackedWidget,
     QVBoxLayout,
     QWidget,
+    QLabel,
+    QStatusBar,
 )
+import psutil
+import os
 
 from ui.sidebar import Sidebar
 from ui.dashboard import Dashboard
@@ -37,7 +41,58 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(1000, 700) # Ensure layout integrity
 
         self._build_ui()
-        self.statusBar().showMessage("Ready")
+        self._setup_status_bar()
+
+    def _setup_status_bar(self):
+        """Create professional status bar with system info"""
+        status_bar = QStatusBar()
+        self.setStatusBar(status_bar)
+        
+        # User info
+        user = os.environ.get("USER", "root")
+        is_root = os.geteuid() == 0
+        user_icon = "🔐" if is_root else "👤"
+        self.user_label = QLabel(f"{user_icon} {user}")
+        self.user_label.setStyleSheet("color: #38bdf8; font-weight: bold; padding: 0 10px;")
+        
+        # CPU indicator
+        self.cpu_label = QLabel("CPU: --%")
+        self.cpu_label.setStyleSheet("color: #94a3b8; padding: 0 10px;")
+        
+        # RAM indicator
+        self.ram_label = QLabel("RAM: --%")
+        self.ram_label.setStyleSheet("color: #94a3b8; padding: 0 10px;")
+        
+        # Version
+        version_label = QLabel("v1.0.0")
+        version_label.setStyleSheet("color: #64748b; padding: 0 10px;")
+        
+        status_bar.addWidget(self.user_label)
+        status_bar.addWidget(self.cpu_label)
+        status_bar.addWidget(self.ram_label)
+        status_bar.addPermanentWidget(version_label)
+        
+        status_bar.showMessage("✨ Ready", 3000)
+        
+        # Update timer
+        self.status_timer = QTimer(self)
+        self.status_timer.timeout.connect(self._update_status_bar)
+        self.status_timer.start(2000)
+        self._update_status_bar()
+    
+    def _update_status_bar(self):
+        """Update CPU/RAM in status bar"""
+        cpu = psutil.cpu_percent()
+        mem = psutil.virtual_memory().percent
+        
+        cpu_color = "#22c55e" if cpu < 50 else "#eab308" if cpu < 80 else "#ef4444"
+        ram_color = "#22c55e" if mem < 50 else "#eab308" if mem < 80 else "#ef4444"
+        
+        self.cpu_label.setText(f"CPU: {cpu:.0f}%")
+        self.cpu_label.setStyleSheet(f"color: {cpu_color}; padding: 0 10px;")
+        
+        self.ram_label.setText(f"RAM: {mem:.0f}%")
+        self.ram_label.setStyleSheet(f"color: {ram_color}; padding: 0 10px;")
 
     def _build_ui(self) -> None:
         central = QWidget()

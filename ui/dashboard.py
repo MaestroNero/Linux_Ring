@@ -1,35 +1,63 @@
 import platform
 import shutil
 import psutil
+import subprocess
 from PySide6.QtWidgets import (
-    QLabel, QGridLayout, QGroupBox, QVBoxLayout, QWidget, QHBoxLayout, QTableWidget, QTableWidgetItem, QHeaderView, QProgressBar
+    QLabel, QGridLayout, QGroupBox, QVBoxLayout, QWidget, QHBoxLayout, 
+    QProgressBar, QPushButton, QFrame, QScrollArea
 )
-from PySide6.QtCore import QTimer, Qt
+from PySide6.QtCore import QTimer, Qt, QThread, Signal
+from PySide6.QtGui import QFont
 
 from ui.widgets.charts import CPUChart, CircularGauge
+from core.security_auditor import SecurityAuditor
+
+
+class AuditWorker(QThread):
+    finished = Signal(int, list, list)
+
+    def __init__(self, auditor):
+        super().__init__()
+        self.auditor = auditor
+
+    def run(self):
+        score, issues, notes = self.auditor.scan_system()
+        self.finished.emit(score, issues, notes)
 
 
 class SecurityScoreWidget(QWidget):
+    issues_signal = Signal(list)  # Signal to pass issues to parent
+    
     def __init__(self):
         super().__init__()
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(10, 10, 10, 10)
+        self.auditor = SecurityAuditor(None)
+        self.worker = None
+        self.current_issues = []
         
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(8)
+        
+        # Header row
         header = QHBoxLayout()
-        header.addWidget(QLabel("<b>Security Health Score</b>"))
-        self.score_lbl = QLabel("Calculating...")
-        self.score_lbl.setStyleSheet("font-weight: bold; font-size: 14px;")
-        header.addWidget(self.score_lbl)
+        title = QLabel("🛡️ Security")
+        title.setStyleSheet("font-weight: bold; font-size: 13px; color: #38bdf8; background: transparent; border: none;")
+        header.addWidget(title)
         header.addStretch()
+        
+        self.score_lbl = QLabel("--")
+        self.score_lbl.setStyleSheet("font-weight: bold; font-size: 24px; color: #22c55e; background: transparent; border: none;")
+        header.addWidget(self.score_lbl)
         layout.addLayout(header)
         
+        # Progress bar
         self.bar = QProgressBar()
         self.bar.setTextVisible(False)
         self.bar.setFixedHeight(8)
-        # Style mostly handled by QSS but overriding colors locally if needed
+        self.bar.setRange(0, 100)
         self.bar.setStyleSheet("""
             QProgressBar::chunk { 
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #38bdf8, stop:1 #8b5cf6); 
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #22c55e, stop:1 #38bdf8); 
                 border-radius: 4px; 
             } 
             QProgressBar { 
@@ -40,148 +68,244 @@ class SecurityScoreWidget(QWidget):
         """)
         layout.addWidget(self.bar)
         
-        self.details = QLabel("Analysis pending...")
-        self.details.setStyleSheet("color: #cbd5e1; font-size: 11px;")
+        # Details label
+        self.details = QLabel("Click to scan...")
+        self.details.setStyleSheet("color: #94a3b8; font-size: 11px; background: transparent; border: none;")
+        self.details.setWordWrap(True)
+        self.details.setCursor(Qt.PointingHandCursor)
         layout.addWidget(self.details)
         
+    def mousePressEvent(self, event):
+        self.update_score()
+        super().mousePressEvent(event)
+        
     def update_score(self):
-        score = 100
-        issues = []
-        
-        # simple checks
-        if psutil.users():
-            # Check if root is logged in (simplified)
-            for user in psutil.users():
-                if user.name == 'root':
-                    score -= 20
-                    issues.append("Root user logged in")
-                    break
-        
-        # Check sshd (example)
-        if 22 in [c.laddr.port for c in psutil.net_connections(kind='inet') if c.status == 'LISTEN']:
-             issues.append("SSH Service exposed")
-             score -= 10
+        if self.worker and self.worker.isRunning():
+            return
+        self.details.setText("⏳ Scanning...")
+        self.worker = AuditWorker(self.auditor)
+        self.worker.finished.connect(self._on_audit_finished)
+        self.worker.start()
 
+    def _on_audit_finished(self, score, issues, notes):
+        self.current_issues = issues
         self.bar.setValue(score)
-        color = "#859900" if score > 80 else "#b58900" if score > 50 else "#dc322f"
-        self.bar.setStyleSheet(f"QProgressBar::chunk {{ background-color: {color}; border-radius: 4px; }} QProgressBar {{ background-color: #073642; border: none; border-radius: 4px; }}")
-        
-        self.score_lbl.setText(f"{score}/100")
-        self.score_lbl.setStyleSheet(f"color: {color}; font-weight: bold; font-size: 14px;")
+        color = "#22c55e" if score > 80 else "#eab308" if score > 50 else "#ef4444"
+        self.score_lbl.setText(f"{score}")
+        self.score_lbl.setStyleSheet(f"font-weight: bold; font-size: 24px; color: {color}; background: transparent; border: none;")
         
         if issues:
-            self.details.setText("Issues: " + ", ".join(issues))
+            self.details.setText(f"⚠️ {len(issues)} issues - Click for details")
+            self.details.setStyleSheet("color: #fbbf24; font-size: 11px; background: transparent; border: none;")
+            # Create tooltip with all issues
+            tooltip_text = "Security Issues Found:\n" + "\n".join([f"• {issue}" for issue in issues[:10]])
+            if len(issues) > 10:
+                tooltip_text += f"\n... and {len(issues) - 10} more"
+            self.details.setToolTip(tooltip_text)
         else:
-            self.details.setText("System appears healthy.")
+            self.details.setText("✅ System is secure")
+            self.details.setStyleSheet("color: #22c55e; font-size: 11px; background: transparent; border: none;")
+            self.details.setToolTip("No security issues detected")
 
 
-class NetworkTable(QTableWidget):
-    def __init__(self):
-        super().__init__(0, 6) # Added Process Name column
-        self.setHorizontalHeaderLabels(["Proto", "Local Address", "Remote Address", "Status", "PID", "Process"])
-        self.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.verticalHeader().setVisible(False)
-        self.setStyleSheet("QTableWidget { border: none; background-color: #073642; gridline-color: #586e75; } QHeaderView::section { background-color: #002b36; color: #268bd2; }")
-        self.setAlternatingRowColors(True)
-        self.setEditTriggers(QTableWidget.NoEditTriggers)
-        self.setSelectionBehavior(QTableWidget.SelectRows)
+class QuickActionCard(QFrame):
+    """Modern action button card"""
+    clicked = Signal()
+    
+    def __init__(self, icon: str, title: str, subtitle: str, color: str = "#38bdf8"):
+        super().__init__()
+        self.color = color
+        self.setObjectName("QuickActionCard")
+        self.setCursor(Qt.PointingHandCursor)
+        self.setFixedHeight(90)
+        self.setStyleSheet(f"""
+            #QuickActionCard {{
+                background-color: rgba(30, 41, 59, 0.8);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 12px;
+            }}
+            #QuickActionCard:hover {{
+                background-color: rgba(51, 65, 85, 0.9);
+                border: 1px solid {color};
+            }}
+        """)
         
-    def update_conns(self):
-        try:
-            # If not root, this might raise AccessDenied for some, or return limited list
-            conns = psutil.net_connections(kind='inet')
-            
-            # Filter for ESTABLISHED/LISTEN and sort by PID
-            filtered = [c for c in conns if c.status in ('ESTABLISHED', 'LISTEN')]
-            filtered.sort(key=lambda x: x.pid)
-            filtered = filtered[:30] # Limit to top 30
-            
-            self.setRowCount(len(filtered))
-            
-            if not filtered:
-                # If validly empty, nothing to do, but if it's because of permissions?
-                # We can't easily validly detect empty vs permission denied on listing unless exception raised.
-                # But usually net_connections returns *something* (like 127.0.0.1 listeners).
-                pass
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(15, 10, 15, 10)
+        
+        # Icon
+        icon_lbl = QLabel(icon)
+        icon_lbl.setStyleSheet(f"font-size: 32px; color: {color}; background: transparent;")
+        layout.addWidget(icon_lbl)
+        
+        # Text
+        text_box = QVBoxLayout()
+        text_box.setSpacing(2)
+        
+        title_lbl = QLabel(title)
+        title_lbl.setStyleSheet(f"font-size: 14px; font-weight: bold; color: #f1f5f9; background: transparent;")
+        text_box.addWidget(title_lbl)
+        
+        sub_lbl = QLabel(subtitle)
+        sub_lbl.setStyleSheet("font-size: 11px; color: #64748b; background: transparent;")
+        text_box.addWidget(sub_lbl)
+        
+        layout.addLayout(text_box)
+        layout.addStretch()
+        
+        # Arrow
+        arrow = QLabel("→")
+        arrow.setStyleSheet(f"font-size: 18px; color: {color}; background: transparent;")
+        layout.addWidget(arrow)
 
-            for row, c in enumerate(filtered):
-                proto = "TCP" if c.type == 1 else "UDP"
-                laddr = f"{c.laddr.ip}:{c.laddr.port}"
-                raddr = f"{c.raddr.ip}:{c.raddr.port}" if c.raddr else "*"
-                
-                proc_name = "?"
-                if c.pid:
-                    try:
-                        proc = psutil.Process(c.pid)
-                        proc_name = proc.name()
-                    except (psutil.NoSuchProcess, psutil.AccessDenied):
-                        pass
+    def mousePressEvent(self, event):
+        self.clicked.emit()
+        super().mousePressEvent(event)
 
-                self.setItem(row, 0, QTableWidgetItem(proto))
-                self.setItem(row, 1, QTableWidgetItem(laddr))
-                self.setItem(row, 2, QTableWidgetItem(raddr))
-                self.setItem(row, 3, QTableWidgetItem(c.status))
-                self.setItem(row, 4, QTableWidgetItem(str(c.pid) if c.pid else "-"))
-                self.setItem(row, 5, QTableWidgetItem(proc_name))
-                
-        except psutil.AccessDenied:
-            self.setRowCount(1)
-            item = QTableWidgetItem("Run as Root to view connections")
-            item.setForeground(Qt.red)
-            self.setItem(0, 0, item)
-            self.setSpan(0, 0, 1, 6)
-        except Exception:
-            self.setRowCount(0)
+
+class ActivityItem(QFrame):
+    """Single activity log item"""
+    def __init__(self, icon: str, message: str, time: str):
+        super().__init__()
+        self.setStyleSheet("""
+            QFrame {
+                background-color: transparent;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+                padding: 5px;
+            }
+        """)
+        
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(5, 8, 5, 8)
+        
+        icon_lbl = QLabel(icon)
+        icon_lbl.setStyleSheet("font-size: 16px;")
+        layout.addWidget(icon_lbl)
+        
+        msg_lbl = QLabel(message)
+        msg_lbl.setStyleSheet("color: #cbd5e1; font-size: 12px;")
+        layout.addWidget(msg_lbl)
+        
+        layout.addStretch()
+        
+        time_lbl = QLabel(time)
+        time_lbl.setStyleSheet("color: #64748b; font-size: 10px;")
+        layout.addWidget(time_lbl)
 
 
 class Dashboard(QWidget):
     def __init__(self, managers: dict):
         super().__init__()
+        self.managers = managers
         self.process_manager = managers.get("processes")
+        self.firewall_manager = managers.get("firewall")
         
-        self.layout = QVBoxLayout(self)
-        self.layout.setContentsMargins(20, 20, 20, 20)
-        self.layout.setSpacing(20)
+        self._build_ui()
+        
+        # Update Timer
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.update_stats)
+        self.timer.start(3000)
+        
+        QTimer.singleShot(500, self.update_stats)
 
-        # Header with Security Score
-        header_layout = QHBoxLayout()
+    def _build_ui(self):
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(25, 25, 25, 25)
+        main_layout.setSpacing(20)
+
+        # === HEADER ===
+        header_frame = QFrame()
+        header_frame.setStyleSheet("""
+            QFrame {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, 
+                    stop:0 rgba(30, 41, 59, 0.8), 
+                    stop:1 rgba(51, 65, 85, 0.6));
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 16px;
+            }
+        """)
+        header = QHBoxLayout(header_frame)
+        header.setContentsMargins(20, 15, 20, 15)
         
-        title_box = QVBoxLayout()
-        title = QLabel("<h1>System Overview</h1>")
-        title.setStyleSheet("color: #268bd2; font-weight: bold; margin-bottom: 0px;") 
-        title_box.addWidget(title)
+        # Logo + Welcome text
+        welcome_box = QHBoxLayout()
+        welcome_box.setSpacing(15)
         
-        self.lbl_sysinfo = QLabel("Loading system info...")
-        self.lbl_sysinfo.setStyleSheet("color: #888; font-size: 14px;")
-        title_box.addWidget(self.lbl_sysinfo)
-        header_layout.addLayout(title_box)
+        logo = QLabel("💎")
+        logo.setStyleSheet("font-size: 36px;")
+        welcome_box.addWidget(logo)
         
-        header_layout.addStretch()
+        text_box = QVBoxLayout()
+        text_box.setSpacing(3)
         
-        # Security Score Widget (Top Right)
-        score_box = QGroupBox() # No title, just container
-        score_box.setStyleSheet("QGroupBox { border: 1px solid #333; border-radius: 8px; background-color: #002b36; }")
-        score_layout = QVBoxLayout(score_box)
+        greeting = QLabel("Linux Ring")
+        greeting.setStyleSheet("""
+            font-size: 22px; 
+            font-weight: bold; 
+            color: #f1f5f9;
+            background: transparent;
+        """)
+        text_box.addWidget(greeting)
+        
+        self.lbl_sysinfo = QLabel("Loading...")
+        self.lbl_sysinfo.setStyleSheet("font-size: 12px; color: #64748b; background: transparent;")
+        text_box.addWidget(self.lbl_sysinfo)
+        
+        welcome_box.addLayout(text_box)
+        header.addLayout(welcome_box)
+        header.addStretch()
+        
+        # Security Score (compact)
         self.security_score = SecurityScoreWidget()
-        score_layout.addWidget(self.security_score)
-        score_box.setFixedWidth(300)
-        header_layout.addWidget(score_box)
+        self.security_score.setFixedWidth(240)
+        self.security_score.setStyleSheet("""
+            background-color: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: 12px;
+        """)
+        header.addWidget(self.security_score)
         
-        self.layout.addLayout(header_layout)
+        main_layout.addWidget(header_frame)
 
-        # Top Row: Gauges
-        gauge_box = QGroupBox("Resource Usage")
-        gauge_box.setStyleSheet("QGroupBox { font-weight: bold; border: 1px solid #333; border-radius: 8px; margin-top: 10px; } QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 5px; }")
-        gauge_layout = QHBoxLayout(gauge_box)
+        # === MAIN CONTENT (2 columns) ===
+        content_layout = QHBoxLayout()
+        content_layout.setSpacing(20)
+        
+        # LEFT COLUMN: Gauges + Chart
+        left_col = QVBoxLayout()
+        left_col.setSpacing(15)
+        
+        # Resource Gauges
+        gauge_frame = QFrame()
+        gauge_frame.setObjectName("GlassPanel")
+        gauge_frame.setStyleSheet("""
+            #GlassPanel {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 rgba(30, 41, 59, 0.7),
+                    stop:1 rgba(15, 23, 42, 0.8));
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 16px;
+            }
+        """)
+        gauge_layout_wrapper = QVBoxLayout(gauge_frame)
+        gauge_layout_wrapper.setContentsMargins(15, 10, 15, 15)
+        
+        gauge_title = QLabel("📈 System Resources")
+        gauge_title.setStyleSheet("font-size: 14px; font-weight: bold; color: #38bdf8; margin-bottom: 5px;")
+        gauge_layout_wrapper.addWidget(gauge_title)
+        
+        gauge_layout = QHBoxLayout()
+        gauge_layout.setContentsMargins(10, 10, 10, 10)
         
         self.cpu_gauge = CircularGauge("CPU")
-        self.cpu_gauge.set_color("#00f0ff") # Cyan
+        self.cpu_gauge.set_color("#38bdf8")
         
         self.ram_gauge = CircularGauge("RAM")
-        self.ram_gauge.set_color("#d33682") # Magenta
+        self.ram_gauge.set_color("#a855f7")
         
         self.disk_gauge = CircularGauge("DISK")
-        self.disk_gauge.set_color("#859900") # Green
+        self.disk_gauge.set_color("#22c55e")
 
         gauge_layout.addStretch()
         gauge_layout.addWidget(self.cpu_gauge)
@@ -191,33 +315,194 @@ class Dashboard(QWidget):
         gauge_layout.addWidget(self.disk_gauge)
         gauge_layout.addStretch()
         
-        self.layout.addWidget(gauge_box)
-
-        # Middle Row: Graphs & Network
-        mid_layout = QHBoxLayout()
+        gauge_layout_wrapper.addLayout(gauge_layout)
+        left_col.addWidget(gauge_frame)
         
         # CPU Chart
-        graph_box = QGroupBox("CPU History")
-        graph_box.setStyleSheet("QGroupBox { font-weight: bold; border: 1px solid #333; border-radius: 8px; margin-top: 10px; } QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 5px; }")
-        graph_layout = QVBoxLayout(graph_box)
-        self.cpu_chart = CPUChart()
-        graph_layout.addWidget(self.cpu_chart)
-        mid_layout.addWidget(graph_box, 1)
+        chart_frame = QFrame()
+        chart_frame.setObjectName("GlassPanel")
+        chart_frame.setStyleSheet("""
+            #GlassPanel {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 rgba(30, 41, 59, 0.7),
+                    stop:1 rgba(15, 23, 42, 0.8));
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 16px;
+            }
+        """)
+        chart_layout = QVBoxLayout(chart_frame)
+        chart_layout.setContentsMargins(15, 15, 15, 15)
         
-        self.layout.addLayout(mid_layout)
-        self.layout.addStretch()
+        chart_title = QLabel("📊 CPU Activity")
+        chart_title.setStyleSheet("font-size: 14px; font-weight: bold; color: #38bdf8;")
+        chart_layout.addWidget(chart_title)
+        
+        self.cpu_chart = CPUChart()
+        chart_layout.addWidget(self.cpu_chart)
+        
+        left_col.addWidget(chart_frame)
+        
+        content_layout.addLayout(left_col, 3)
+        
+        # RIGHT COLUMN: Quick Actions + Activity
+        right_col = QVBoxLayout()
+        right_col.setSpacing(15)
+        
+        # Quick Actions Title
+        actions_title = QLabel("⚡ Quick Actions")
+        actions_title.setStyleSheet("font-size: 14px; font-weight: bold; color: #f1f5f9;")
+        right_col.addWidget(actions_title)
+        
+        # Action Cards
+        self.firewall_card = QuickActionCard("🔥", "Firewall", "Toggle protection", "#f97316")
+        self.firewall_card.clicked.connect(self._toggle_firewall)
+        right_col.addWidget(self.firewall_card)
+        
+        scan_card = QuickActionCard("🔍", "Security Scan", "Check vulnerabilities", "#22c55e")
+        scan_card.clicked.connect(self._run_scan)
+        right_col.addWidget(scan_card)
+        
+        update_card = QuickActionCard("🔄", "Check Updates", "System packages", "#38bdf8")
+        update_card.clicked.connect(self._check_updates)
+        right_col.addWidget(update_card)
+        
+        # Activity Feed
+        activity_title = QLabel("📋 Recent Activity")
+        activity_title.setStyleSheet("font-size: 14px; font-weight: bold; color: #f1f5f9; margin-top: 10px;")
+        right_col.addWidget(activity_title)
+        
+        activity_frame = QFrame()
+        activity_frame.setStyleSheet("""
+            QFrame {
+                background-color: rgba(30, 41, 59, 0.6);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 12px;
+            }
+        """)
+        activity_frame.setMinimumHeight(180)
+        
+        activity_outer = QVBoxLayout(activity_frame)
+        activity_outer.setContentsMargins(0, 0, 0, 0)
+        
+        # Scrollable activity area
+        activity_scroll = QScrollArea()
+        activity_scroll.setWidgetResizable(True)
+        activity_scroll.setStyleSheet("""
+            QScrollArea {
+                border: none;
+                background: transparent;
+            }
+            QScrollBar:vertical {
+                background: transparent;
+                width: 6px;
+            }
+            QScrollBar::handle:vertical {
+                background: rgba(56, 189, 248, 0.3);
+                border-radius: 3px;
+            }
+        """)
+        
+        activity_widget = QWidget()
+        activity_widget.setStyleSheet("background: transparent;")
+        self.activity_container = QVBoxLayout(activity_widget)
+        self.activity_container.setContentsMargins(10, 10, 10, 10)
+        self.activity_container.setSpacing(2)
+        self.activity_container.addStretch()
+        
+        activity_scroll.setWidget(activity_widget)
+        activity_outer.addWidget(activity_scroll)
+        
+        right_col.addWidget(activity_frame)
+        right_col.addStretch()
+        
+        content_layout.addLayout(right_col, 2)
+        
+        main_layout.addLayout(content_layout)
+        
+        # Initial activity
+        self._add_activity("🚀", "Dashboard loaded", "just now")
+        self._update_sysinfo()
+        
+        # Start security scan
+        QTimer.singleShot(1000, self.security_score.update_score)
 
-        # Update Timer
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.update_stats)
-        self.timer.start(2000) # 2 sec refresh
+    def _add_activity(self, icon: str, message: str, time: str):
+        # Remove stretch if exists (it's at the end)
+        count = self.activity_container.count()
+        if count > 0:
+            last_item = self.activity_container.itemAt(count - 1)
+            if last_item and last_item.spacerItem():
+                self.activity_container.takeAt(count - 1)
+        
+        # Limit to 15 items for scroll
+        while self.activity_container.count() >= 15:
+            item = self.activity_container.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+        
+        activity = ActivityItem(icon, message, time)
+        self.activity_container.addWidget(activity)
+        
+        # Add stretch back at the end
+        self.activity_container.addStretch()
 
-        self.update_sysinfo()
-
-    def update_sysinfo(self):
+    def _update_sysinfo(self):
         uname = platform.uname()
-        info_str = f"{uname.system} {uname.release} | {uname.machine}"
-        self.lbl_sysinfo.setText(info_str)
+        uptime = ""
+        try:
+            with open("/proc/uptime", "r") as f:
+                uptime_sec = float(f.read().split()[0])
+                hours = int(uptime_sec // 3600)
+                mins = int((uptime_sec % 3600) // 60)
+                uptime = f" • Uptime: {hours}h {mins}m"
+        except:
+            pass
+        self.lbl_sysinfo.setText(f"{uname.system} {uname.release}{uptime}")
+
+    def _toggle_firewall(self):
+        if self.firewall_manager:
+            try:
+                if self.firewall_manager.is_active():
+                    self.firewall_manager.disable()
+                    self._add_activity("🔥", "Firewall disabled", "now")
+                else:
+                    self.firewall_manager.enable()
+                    self._add_activity("🛡️", "Firewall enabled", "now")
+            except Exception as e:
+                self._add_activity("❌", f"Firewall error: {str(e)[:30]}", "now")
+                print(f"Firewall error: {e}")
+        else:
+            self._add_activity("⚠️", "UFW not installed", "now")
+
+    def _run_scan(self):
+        self._add_activity("🔍", "Security scan started", "now")
+        self.security_score.update_score()
+
+    def _check_updates(self):
+        self._add_activity("🔄", "Checking for updates...", "now")
+        # Run apt update in background
+        import subprocess
+        import threading
+        def check():
+            try:
+                import os
+                if os.geteuid() == 0:
+                    result = subprocess.run(["apt-get", "update", "-qq"], capture_output=True, text=True, timeout=60)
+                    result2 = subprocess.run(["apt", "list", "--upgradable"], capture_output=True, text=True, timeout=30)
+                else:
+                    result = subprocess.run(["sudo", "apt-get", "update", "-qq"], capture_output=True, text=True, timeout=60)
+                    result2 = subprocess.run(["apt", "list", "--upgradable"], capture_output=True, text=True, timeout=30)
+                
+                lines = [l for l in result2.stdout.strip().split('\n') if l and 'Listing' not in l]
+                count = len(lines)
+                if count > 0:
+                    self._add_activity("📦", f"{count} updates available", "now")
+                else:
+                    self._add_activity("✅", "System is up to date", "now")
+            except Exception as e:
+                self._add_activity("❌", f"Update check failed", "now")
+        
+        threading.Thread(target=check, daemon=True).start()
 
     def update_stats(self):
         # CPU
@@ -234,6 +519,5 @@ class Dashboard(QWidget):
         disk_percent = (disk.used / disk.total) * 100
         self.disk_gauge.set_value(disk_percent)
         
-        # Score
-        # Score
-        self.security_score.update_score()
+        # Update sysinfo periodically
+        self._update_sysinfo()

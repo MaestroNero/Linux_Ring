@@ -129,10 +129,29 @@ class SudoManager(QObject):
             self.logger.error(f"Error during password validation: {e}")
             return False
     
+    def _is_root(self) -> bool:
+        """Check if currently running as root."""
+        import os
+        return os.geteuid() == 0
+    
     def run_privileged(self, command: list[str]) -> subprocess.CompletedProcess:
         """
         Run a command with sudo, handling authentication retries using Fail-Fast strategy.
+        If already running as root, executes command directly without sudo.
         """
+        # If already root, run command directly
+        if self._is_root():
+            self.logger.info(f"Running as root: {' '.join(command)}")
+            result = subprocess.run(
+                command,
+                text=True,
+                capture_output=True
+            )
+            if result.returncode != 0:
+                raise subprocess.CalledProcessError(result.returncode, command, result.stdout, result.stderr)
+            return result
+        
+        # Not root - need sudo with password
         retries = 3
         while retries > 0:
             pwd = self.get_password(force_prompt=(retries < 3))
@@ -192,7 +211,36 @@ class SudoManager(QObject):
         """
         Run a privileged command and stream output.
         Uses password validation before executing to prevent unauthorized execution.
+        If already running as root, executes command directly without sudo.
         """
+        # If already root, run command directly
+        if self._is_root():
+            self.logger.info(f"Running stream as root: {' '.join(command)}")
+            log_callback("[info] Running with root privileges...")
+            
+            proc = subprocess.Popen(
+                command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                env=env,
+                bufsize=1,
+                universal_newlines=True
+            )
+            
+            # Stream output
+            if proc.stdout:
+                for line in proc.stdout:
+                    log_callback(line.strip())
+
+            proc.wait()
+            
+            if proc.returncode != 0:
+                log_callback(f"[error] Command failed with exit code {proc.returncode}")
+            
+            return
+        
+        # Not root - need sudo with password
         retries = 3
         while retries > 0:
             pwd = self.get_password(force_prompt=(retries < 3))

@@ -7,7 +7,7 @@ class Sidebar(QListWidget):
         super().__init__()
         self.setObjectName("Sidebar")
         self.setSpacing(5)
-        self.setIconSize(QSize(24, 24))
+        self.setIconSize(QSize(32, 32))  # Bigger Icons
         
         # Map section names to system icons (fallback to emojis/text if needed)
         # Using standard freedesktop icon names

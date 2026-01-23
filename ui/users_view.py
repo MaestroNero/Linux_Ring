@@ -24,11 +24,35 @@ class ManageUserDialog(QDialog):
     def __init__(self, username, current_groups, user_info, parent_view, parent=None):
         """
         Comprehensive User Management Dialog
-        - Tabs: Permissions (Groups), Security (Password), Danger Zone (Delete)
         """
         super().__init__(parent)
         self.setWindowTitle(f"Manage User: {username}")
-        self.setFixedSize(600, 500)
+        self.setFixedSize(650, 550)
+        self.setStyleSheet("""
+            QDialog {
+                background-color: #0f172a;
+                color: #e2e8f0;
+            }
+            QTabWidget::pane {
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                background: rgba(30, 41, 59, 0.5);
+                border-radius: 8px;
+            }
+            QTabBar::tab {
+                background: rgba(51, 65, 85, 0.5);
+                color: #94a3b8;
+                padding: 12px 24px;
+                border: none;
+                border-top-left-radius: 8px;
+                border-top-right-radius: 8px;
+                margin-right: 2px;
+            }
+            QTabBar::tab:selected {
+                background: rgba(56, 189, 248, 0.2);
+                color: #38bdf8;
+                font-weight: bold;
+            }
+        """)
         self.username = username
         self.parent_view = parent_view
         self.user_info = user_info
@@ -39,17 +63,33 @@ class ManageUserDialog(QDialog):
         self.groups_to_remove = set()
         
         main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(25, 25, 25, 25)
+        main_layout.setSpacing(15)
         
         # Header
-        header = QHBoxLayout()
-        lbl_icon = QLabel("👤")
-        lbl_icon.setStyleSheet("font-size: 40px;")
-        header.addWidget(lbl_icon)
+        header_frame = QFrame()
+        header_frame.setStyleSheet("""
+            QFrame {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, 
+                    stop:0 rgba(56, 189, 248, 0.1), 
+                    stop:1 rgba(139, 92, 246, 0.1));
+                border: 1px solid rgba(56, 189, 248, 0.3);
+                border-radius: 12px;
+            }
+        """)
+        header_layout = QHBoxLayout(header_frame)
+        header_layout.setContentsMargins(20, 15, 20, 15)
         
-        lbl_name = QLabel(f"<h2>{username}</h2>")
-        header.addWidget(lbl_name)
-        header.addStretch()
-        main_layout.addLayout(header)
+        lbl_icon = QLabel("👤")
+        lbl_icon.setStyleSheet("font-size: 40px; background: transparent;")
+        header_layout.addWidget(lbl_icon)
+        
+        lbl_name = QLabel(f"{username}")
+        lbl_name.setStyleSheet("font-size: 22px; font-weight: bold; color: #38bdf8; background: transparent;")
+        header_layout.addWidget(lbl_name)
+        header_layout.addStretch()
+        
+        main_layout.addWidget(header_frame)
 
         # Tabs
         self.tabs = QTabWidget()
@@ -58,26 +98,52 @@ class ManageUserDialog(QDialog):
         # --- TAB 1: PRIVILEGES (Groups) ---
         self.tab_groups = QWidget()
         self._init_groups_tab()
-        self.tabs.addTab(self.tab_groups, "Privileges")
+        self.tabs.addTab(self.tab_groups, "🔐 Privileges")
         
         # --- TAB 2: SECURITY (Password) ---
         self.tab_security = QWidget()
         self._init_security_tab()
-        self.tabs.addTab(self.tab_security, "Security")
+        self.tabs.addTab(self.tab_security, "🔒 Security")
         
         # --- TAB 3: DANGER ZONE ---
         self.tab_danger = QWidget()
         self._init_danger_tab()
-        self.tabs.addTab(self.tab_danger, "Danger Zone")
+        self.tabs.addTab(self.tab_danger, "⚠️ Danger Zone")
 
         # Footer Actions
         footer = QHBoxLayout()
-        self.btn_save = QPushButton("Save Changes")
-        self.btn_save.setProperty("class", "primary")
-        self.btn_save.clicked.connect(self.save_changes)
         
-        btn_close = QPushButton("Close")
+        btn_close = QPushButton("Cancel")
+        btn_close.setStyleSheet("""
+            QPushButton {
+                background: rgba(51, 65, 85, 0.6);
+                color: #94a3b8;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                padding: 12px 25px;
+                border-radius: 8px;
+            }
+            QPushButton:hover {
+                background: rgba(71, 85, 105, 0.8);
+                color: #f1f5f9;
+            }
+        """)
         btn_close.clicked.connect(self.reject)
+        
+        self.btn_save = QPushButton("💾 Save Changes")
+        self.btn_save.setStyleSheet("""
+            QPushButton {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #22c55e, stop:1 #10b981);
+                color: white;
+                border: none;
+                padding: 12px 25px;
+                border-radius: 8px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #10b981, stop:1 #34d399);
+            }
+        """)
+        self.btn_save.clicked.connect(self.save_changes)
         
         footer.addStretch()
         footer.addWidget(btn_close)
@@ -240,25 +306,48 @@ class UserCard(QFrame):
         super().__init__()
         self.user = user
         self.parent_view = parent_view
-        self.setObjectName("ToolCard") # Use shared card style
+        self.setObjectName("UserCard")
+        self.setStyleSheet("""
+            #UserCard {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                    stop:0 rgba(30, 41, 59, 0.9),
+                    stop:1 rgba(51, 65, 85, 0.7));
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 16px;
+            }
+            #UserCard:hover {
+                border: 1px solid rgba(56, 189, 248, 0.5);
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                    stop:0 rgba(51, 65, 85, 0.95),
+                    stop:1 rgba(71, 85, 105, 0.8));
+            }
+        """)
         
-        self.setFixedSize(300, 220) 
+        self.setFixedSize(300, 200) 
 
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(20, 15, 20, 15)
         layout.setSpacing(10)
         
         # Header: Icon + Username
         header = QHBoxLayout()
-        icon_label = QLabel("👤") 
-        icon_label.setStyleSheet("font-size: 32px; color: #00bcd4; background: transparent;")
+        
+        # Role-based icon and color
+        is_admin = "Admin" in user.get('role', '') or "Root" in user.get('role', '')
+        icon_text = "👑" if is_admin else "👤"
+        icon_color = "#eab308" if is_admin else "#38bdf8"
+        
+        icon_label = QLabel(icon_text) 
+        icon_label.setStyleSheet(f"font-size: 36px; background: transparent;")
         header.addWidget(icon_label)
         
         name_layout = QVBoxLayout()
+        name_layout.setSpacing(2)
         name_label = QLabel(user["username"])
-        name_label.setStyleSheet("font-size: 20px; font-weight: bold; color: #ffffff; background: transparent;")
+        name_label.setStyleSheet(f"font-size: 18px; font-weight: bold; color: {icon_color}; background: transparent;")
         
         role_label = QLabel(user.get('role', 'User'))
-        role_label.setStyleSheet("font-size: 12px; color: #888888; background: transparent;")
+        role_label.setStyleSheet("font-size: 11px; color: #64748b; background: transparent;")
         
         name_layout.addWidget(name_label)
         name_layout.addWidget(role_label)
@@ -271,25 +360,41 @@ class UserCard(QFrame):
         info_layout = QGridLayout()
         info_layout.setSpacing(5)
         
+        uid_label = QLabel("UID:")
+        uid_label.setStyleSheet("color: #64748b; font-size: 12px; background: transparent;")
         uid_val = QLabel(str(user['uid']))
-        uid_val.setStyleSheet("color: #bbbbbb; background: transparent;")
+        uid_val.setStyleSheet("color: #94a3b8; font-size: 12px; background: transparent;")
         
-        shell_val = QLabel(user['shell'])
-        shell_val.setStyleSheet("color: #888888; font-family: monospace; font-size: 11px; background: transparent;")
+        shell_label = QLabel("Shell:")
+        shell_label.setStyleSheet("color: #64748b; font-size: 12px; background: transparent;")
+        shell_val = QLabel(user['shell'].split('/')[-1])
+        shell_val.setStyleSheet("color: #94a3b8; font-family: monospace; font-size: 11px; background: transparent;")
         shell_val.setToolTip(user['shell'])
         
-        info_layout.addWidget(QLabel("UID:"), 0, 0)
+        info_layout.addWidget(uid_label, 0, 0)
         info_layout.addWidget(uid_val, 0, 1)
-        info_layout.addWidget(QLabel("Shell:"), 1, 0)
+        info_layout.addWidget(shell_label, 1, 0)
         info_layout.addWidget(shell_val, 1, 1)
         
         layout.addLayout(info_layout)
         layout.addStretch()
 
-        # Actions - Single "Manage" Button
-        self.btn_manage = QPushButton("Manage Settings")
+        # Actions
+        self.btn_manage = QPushButton("⚙️ Manage Settings")
         self.btn_manage.setCursor(Qt.PointingHandCursor)
-        self.btn_manage.setProperty("class", "primary") # Black text on cyan
+        self.btn_manage.setStyleSheet("""
+            QPushButton {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #0ea5e9, stop:1 #38bdf8);
+                color: white;
+                border: none;
+                padding: 10px;
+                border-radius: 8px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #38bdf8, stop:1 #7dd3fc);
+            }
+        """)
         self.btn_manage.clicked.connect(self.on_manage)
         
         layout.addWidget(self.btn_manage)
@@ -305,30 +410,73 @@ class UsersView(QWidget):
         self.logger = logger
         
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(30, 30, 30, 30)
+        layout.setContentsMargins(25, 25, 25, 25)
+        layout.setSpacing(20)
         
-        # Header
-        header = QHBoxLayout()
-        title = QLabel("<h2>User Management</h2>")
-        # Global QSS handles color, but override for specifics if needed
-        header.addWidget(title)
+        # Header Frame
+        header_frame = QFrame()
+        header_frame.setStyleSheet("""
+            QFrame {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, 
+                    stop:0 rgba(30, 41, 59, 0.8), 
+                    stop:1 rgba(51, 65, 85, 0.6));
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 16px;
+            }
+        """)
+        header_layout = QHBoxLayout(header_frame)
+        header_layout.setContentsMargins(20, 15, 20, 15)
         
-        header.addStretch()
+        title_box = QVBoxLayout()
+        title = QLabel("👥 User Management")
+        title.setStyleSheet("font-size: 20px; font-weight: bold; color: #38bdf8; background: transparent;")
+        title_box.addWidget(title)
         
-        refresh_btn = QPushButton("Refresh")
+        subtitle = QLabel("Manage system users, permissions, and security settings")
+        subtitle.setStyleSheet("color: #64748b; font-size: 13px; background: transparent;")
+        title_box.addWidget(subtitle)
+        
+        header_layout.addLayout(title_box)
+        header_layout.addStretch()
+        
+        refresh_btn = QPushButton("🔄 Refresh")
         refresh_btn.setCursor(Qt.PointingHandCursor)
+        refresh_btn.setStyleSheet("""
+            QPushButton {
+                background: rgba(51, 65, 85, 0.6);
+                color: #94a3b8;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                padding: 10px 20px;
+                border-radius: 8px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background: rgba(71, 85, 105, 0.8);
+                color: #f1f5f9;
+            }
+        """)
         refresh_btn.clicked.connect(self.refresh)
         
-        add_btn = QPushButton("+ Add User")
+        add_btn = QPushButton("➕ Add User")
         add_btn.setCursor(Qt.PointingHandCursor)
-        # Using QSS class or global style preferred to inline
+        add_btn.setStyleSheet("""
+            QPushButton {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #22c55e, stop:1 #10b981);
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 8px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #10b981, stop:1 #34d399);
+            }
+        """)
         add_btn.clicked.connect(self.add_user)
         
-        header.addWidget(refresh_btn)
-        header.addWidget(add_btn)
-        layout.addLayout(header)
-        
-        layout.addSpacing(20)
+        header_layout.addWidget(refresh_btn)
+        header_layout.addWidget(add_btn)
+        layout.addWidget(header_frame)
 
         # Content Area
         self.scroll = QScrollArea()
@@ -336,8 +484,10 @@ class UsersView(QWidget):
         self.scroll.setStyleSheet("QScrollArea { border: none; background: transparent; }")
         
         self.content_widget = QWidget()
+        self.content_widget.setStyleSheet("background: transparent;")
         self.content_layout = QVBoxLayout(self.content_widget)
         self.content_layout.setAlignment(Qt.AlignTop)
+        self.content_layout.setSpacing(20)
         
         self.scroll.setWidget(self.content_widget)
         layout.addWidget(self.scroll)
