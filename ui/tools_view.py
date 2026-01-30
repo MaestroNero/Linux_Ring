@@ -30,18 +30,19 @@ from ui.widgets.flow_layout import FlowLayout
 
 class CommandWorker(QThread):
     progress = Signal(str)
-    finished = Signal(bool, str)
+    finished = Signal(str, bool, str)  # tool_id, success, message
 
-    def __init__(self, func):
+    def __init__(self, tool_id: str, func):
         super().__init__()
+        self.tool_id = tool_id
         self.func = func
 
     def run(self) -> None:
         try:
             self.func(self.progress.emit)
-            self.finished.emit(True, "")
+            self.finished.emit(self.tool_id, True, "")
         except Exception as exc:  # pragma: no cover - defensive
-            self.finished.emit(False, str(exc))
+            self.finished.emit(self.tool_id, False, str(exc))
 
 
 class ToolCard(QFrame):
@@ -506,7 +507,12 @@ class ToolsView(QWidget):
 
     def _handle_action_click(self, tool: dict):
         card = self.cards.get(tool["id"])
-        if card.action_btn.text() == "Open":
+        if not card: return
+        
+        # Check status label instead of button text for reliability
+        is_installed = card.status_label.text() == "✓ INSTALLED"
+
+        if is_installed:
             self._open_tool(tool)
         else:
             self._start_task("install", tool)
@@ -644,30 +650,46 @@ class ToolsView(QWidget):
                 if hasattr(self.installer, '_sudo_password'):
                     self.installer._sudo_password = None
 
-        worker = CommandWorker(run_with_password)
+        # Pass tool_id to worker and connect to the new slot
+        worker = CommandWorker(tool["id"], run_with_password)
         worker.progress.connect(self.log_signal)
-        worker.finished.connect(
-            partial(self._task_finished, tool=tool, action=action, worker=worker)
-        )
+        worker.finished.connect(self._on_task_finished)
         self.workers.append(worker)
         worker.start()
 
-    def _task_finished(self, success: bool, error: str, tool: dict, action: str, worker: CommandWorker) -> None:
-        card = self.cards.get(tool["id"])
-        if card:
-             card.set_running(False)
-        try:
-            self.workers.remove(worker)
-        except ValueError:
-            pass
+    def _on_task_finished(self, tool_id: str, success: bool, error: str) -> None:
+        """
+        Slot to handle finished worker signals.
+        This is the single source of truth for updating UI after a task.
+        """
+        card = self.cards.get(tool_id)
+        if not card:
+            self.logger.warning(f"Could not find card for tool_id {tool_id} after task finished.")
+            return
+
+        # Determine what action was just performed for logging purposes *before* changing state.
+        # If the remove button was visible, the action was 'remove'. Otherwise, it was 'install'.
+        action = "remove" if card.remove_btn.isVisible() else "install"
+
+        card.set_running(False)
+        
+        # Find the worker and remove it from the active list
+        worker_to_remove = next((w for w in self.workers if w.tool_id == tool_id), None)
+        if worker_to_remove:
+            try:
+                self.workers.remove(worker_to_remove)
+            except ValueError:
+                pass # Should not happen, but defensive
 
         if success:
-            status_msg = f"{tool['name']} {action}ed successfully"
+            status_msg = f"{card.tool['name']} {action}ed successfully."
             self.logger.info(status_msg)
-            self.log_signal.emit(status_msg)
-            card.check_installation() # Re-check status
+            self.log_signal.emit(status_msg, "success")
         else:
-            status_msg = f"{action.capitalize()} failed: {error}"
+            status_msg = f"Operation failed for {card.tool['name']}: {error}"
             self.logger.error(status_msg)
+            self.log_signal.emit(status_msg, "error")
             if card: card.set_status("Error")
-            self.log_signal.emit(status_msg)
+
+        # ALWAYS refresh the card's state from the system. This is the key fix.
+        card.check_installation()

@@ -51,25 +51,29 @@ QScrollBar::handle:horizontal {
 }
 
 /* --- GLASS PANELS --- */
-QFrame, QGroupBox {
+QFrame {
     background-color: rgba(30, 41, 59, 0.4);
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 12px;
 }
 
 QGroupBox {
+    background-color: rgba(30, 41, 59, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    margin-top: 24px;
+    padding-top: 20px;
     font-weight: 600;
     font-size: 13px;
     color: #94a3b8;
-    padding-top: 20px;
-    margin-top: 10px;
 }
 
 QGroupBox::title {
     subcontrol-origin: margin;
-    left: 15px;
+    subcontrol-position: top left;
     padding: 0 8px;
     color: #38bdf8;
+    left: 15px;
 }
 
 /* --- DIALOGS --- */
@@ -265,25 +269,31 @@ QTabBar::tab:hover {
 
 /* --- SCROLLBARS --- */
 QScrollBar:vertical {
-    background: rgba(0,0,0,0.1);
+    background: transparent;
     width: 8px;
     margin: 0;
 }
 QScrollBar::handle:vertical {
-    background: rgba(255, 255, 255, 0.1);
-    min-height: 30px;
+    background: rgba(148, 163, 184, 0.3);
     border-radius: 4px;
+    min-height: 30px;
 }
 QScrollBar::handle:vertical:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(56, 189, 248, 0.5);
+}
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    height: 0;
 }
 QScrollBar:horizontal {
+    background: transparent;
     height: 8px;
-    background: rgba(0,0,0,0.1);
 }
 QScrollBar::handle:horizontal {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(148, 163, 184, 0.3);
     border-radius: 4px;
+}
+QScrollBar::handle:horizontal:hover {
+    background: rgba(56, 189, 248, 0.5);
 }
 
 /* --- SIDEBAR --- */
@@ -316,14 +326,16 @@ QGroupBox {
     border-radius: 8px;
     margin-top: 24px;
     padding-top: 20px;
+    font-weight: 600;
+    font-size: 13px;
+    color: #94a3b8;
 }
 QGroupBox::title {
     subcontrol-origin: margin;
     subcontrol-position: top left;
-    padding: 0 5px;
-    color: #4fc3f7;
-    font-weight: bold;
-    left: 10px;
+    padding: 0 8px;
+    color: #38bdf8;
+    left: 15px;
 }
 
 /* --- QUICK ACTION CARDS --- */
