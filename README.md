@@ -2,6 +2,22 @@
 
 **Linux Ring** is a comprehensive, professional GUI application designed to manage, harden, and monitor Linux environments (specifically tailored for Kali Linux). Built by **Maestro Nero**, this tool [...]
 
+<div align="center">
+
+![Build](https://img.shields.io/badge/build-stable-28a745?style=for-the-badge&logo=github)
+![Platform](https://img.shields.io/badge/platform-Kali_Linux-557C9D?style=for-the-badge&logo=kali-linux&logoColor=white)
+![Python](https://img.shields.io/badge/python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Last Commit](https://img.shields.io/github/last-commit/MaestroNero/Linux_Ring?style=for-the-badge&logo=git)
+![Language](https://img.shields.io/github/languages/top/MaestroNero/Linux_Ring?style=for-the-badge&color=3776AB)
+![Technologies](https://img.shields.io/badge/technologies-PySide6%20%7C%20Qt%20%7C%20UFW-yellow?style=for-the-badge&logo=qt)
+![Stars](https://img.shields.io/github/stars/MaestroNero/Linux_Ring?style=for-the-badge&color=ffac33&logo=github)
+![Forks](https://img.shields.io/github/forks/MaestroNero/Linux_Ring?style=for-the-badge&color=blueviolet&logo=github)
+![Issues](https://img.shields.io/github/issues/MaestroNero/Linux_Ring?style=for-the-badge&logo=github)
+![Contributors](https://img.shields.io/github/contributors/MaestroNero/Linux_Ring?style=for-the-badge&color=9c27b0)
+
+</div>
+
+
 ## Features
 
 - **Dashboard**: Real-time system overview (CPU, Memory, Network) with recent activity logs.
