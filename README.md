@@ -17,31 +17,22 @@
 
 ## Application Preview
 
-> **Tip:** Click any image below to view it in full resolution.
-
 <p align="center">
-  <a href="https://i.ibb.co/MDsJgqDm/MDsJgqDm.png" target="_blank">
-    <img src="https://i.ibb.co/MDsJgqDm/MDsJgqDm.png" alt="Dashboard Preview" style="width:100%; max-width:1000px; height:auto;" />
-  </a>
+  <img src="https://i.postimg.cc/mtkfw0WS/Screenshot-From-2026-01-31-00-46-41.png" style="width:100%; max-width:1100px; height:auto;">
+</p>
+<p align="center">
+  <img src="https://i.postimg.cc/1fXhHL1L/Screenshot-From-2026-01-31-00-46-51.png" style="width:100%; max-width:1100px; height:auto;">
+</p>
+<p align="center">
+  <img src="https://i.postimg.cc/BXb9gdfk/Screenshot-From-2026-01-31-00-47-18.png" style="width:100%; max-width:1100px; height:auto;">
+</p>
+<p align="center">
+  <img src="https://i.postimg.cc/Ln5KTrFW/Screenshot-From-2026-01-31-00-47-25.png" style="width:100%; max-width:1100px; height:auto;">
+</p>
+<p align="center">
+  <img src="https://i.postimg.cc/D80kgt3Y/Screenshot-From-2026-01-31-00-47-32.png" style="width:100%; max-width:1100px; height:auto;">
 </p>
 
-<p align="center">
-  <a href="https://i.ibb.co/v4RyS0tP/v4RyS0tP.png" target="_blank">
-    <img src="https://i.ibb.co/v4RyS0tP/v4RyS0tP.png" alt="Secure Profiles Preview" style="width:100%; max-width:1000px; height:auto;" />
-  </a>
-</p>
-
-<p align="center">
-  <a href="https://i.ibb.co/7dZWnYjJ/7dZWnYjJ.png" target="_blank">
-    <img src="https://i.ibb.co/7dZWnYjJ/7dZWnYjJ.png" alt="User Management Preview" style="width:100%; max-width:1000px; height:auto;" />
-  </a>
-</p>
-
-<p align="center">
-  <a href="https://i.ibb.co/qMvqHRkF/qMvqHRkF.png" target="_blank">
-    <img src="https://i.ibb.co/qMvqHRkF/qMvqHRkF.png" alt="Tool Arsenal Preview" style="width:100%; max-width:1000px; height:auto;" />
-  </a>
-</p>
 
 
 ## Project Structure
