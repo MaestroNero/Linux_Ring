@@ -1,6 +1,6 @@
 # Linux Ring
 
-**Linux Ring** is a comprehensive, professional GUI application designed to manage, harden, and monitor Linux environments (specifically tailored for Kali Linux). Built by **Maestro Nero**, this tool leverages Python 3 and PySide6 to provide a seamless, modern interface for system administration tasks.
+**Linux Ring** is a comprehensive, professional GUI application designed to manage, harden, and monitor Linux environments (specifically tailored for Kali Linux). Built by **Maestro Nero**, this tool [...]
 
 ## Features
 
@@ -14,6 +14,35 @@
 - **User Management**: graphical interface for managing users and groups.
 - **Firewall Manager**: Simplified UFW management and status monitoring.
 - **Task Queue**: Robust background task handling to ensure the UI remains responsive.
+
+## Application Preview
+
+> **Tip:** Click any image below to view it in full resolution.
+
+<p align="center">
+  <a href="https://i.ibb.co/MDsJgqDm/MDsJgqDm.png" target="_blank">
+    <img src="https://i.ibb.co/MDsJgqDm/MDsJgqDm.png" alt="Dashboard Preview" style="width:100%; max-width:1000px; height:auto;" />
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://i.ibb.co/v4RyS0tP/v4RyS0tP.png" target="_blank">
+    <img src="https://i.ibb.co/v4RyS0tP/v4RyS0tP.png" alt="Secure Profiles Preview" style="width:100%; max-width:1000px; height:auto;" />
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://i.ibb.co/7dZWnYjJ/7dZWnYjJ.png" target="_blank">
+    <img src="https://i.ibb.co/7dZWnYjJ/7dZWnYjJ.png" alt="User Management Preview" style="width:100%; max-width:1000px; height:auto;" />
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://i.ibb.co/qMvqHRkF/qMvqHRkF.png" target="_blank">
+    <img src="https://i.ibb.co/qMvqHRkF/qMvqHRkF.png" alt="Tool Arsenal Preview" style="width:100%; max-width:1000px; height:auto;" />
+  </a>
+</p>
+
 
 ## Project Structure
 
