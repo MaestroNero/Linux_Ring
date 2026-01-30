@@ -17,21 +17,53 @@
 
 ## Application Preview
 
+> **Tip:** Click any image to view it in full resolution.
+
+<!-- Dashboard -->
 <p align="center">
-  <img src="https://i.postimg.cc/mtkfw0WS/Screenshot-From-2026-01-31-00-46-41.png" style="width:100%; max-width:1100px; height:auto;">
+  <a href="https://i.postimg.cc/mtkfw0WS/Screenshot-From-2026-01-31-00-46-41.png" target="_blank">
+    <img src="https://i.postimg.cc/mtkfw0WS/Screenshot-From-2026-01-31-00-46-41.png" 
+         alt="Dashboard Preview" 
+         style="width:100%; max-width:1100px; height:auto; display:block; margin-bottom:20px;">
+  </a>
 </p>
+
+<!-- Secure Profiles -->
 <p align="center">
-  <img src="https://i.postimg.cc/1fXhHL1L/Screenshot-From-2026-01-31-00-46-51.png" style="width:100%; max-width:1100px; height:auto;">
+  <a href="https://i.postimg.cc/1fXhHL1L/Screenshot-From-2026-01-31-00-46-51.png" target="_blank">
+    <img src="https://i.postimg.cc/1fXhHL1L/Screenshot-From-2026-01-31-00-46-51.png" 
+         alt="Secure Profiles Preview" 
+         style="width:100%; max-width:1100px; height:auto; display:block; margin-bottom:20px;">
+  </a>
 </p>
+
+<!-- User Management -->
 <p align="center">
-  <img src="https://i.postimg.cc/BXb9gdfk/Screenshot-From-2026-01-31-00-47-18.png" style="width:100%; max-width:1100px; height:auto;">
+  <a href="https://i.postimg.cc/BXb9gdfk/Screenshot-From-2026-01-31-00-47-18.png" target="_blank">
+    <img src="https://i.postimg.cc/BXb9gdfk/Screenshot-From-2026-01-31-00-47-18.png" 
+         alt="User Management Preview" 
+         style="width:100%; max-width:1100px; height:auto; display:block; margin-bottom:20px;">
+  </a>
 </p>
+
+<!-- Tool Arsenal -->
 <p align="center">
-  <img src="https://i.postimg.cc/Ln5KTrFW/Screenshot-From-2026-01-31-00-47-25.png" style="width:100%; max-width:1100px; height:auto;">
+  <a href="https://i.postimg.cc/Ln5KTrFW/Screenshot-From-2026-01-31-00-47-25.png" target="_blank">
+    <img src="https://i.postimg.cc/Ln5KTrFW/Screenshot-From-2026-01-31-00-47-25.png" 
+         alt="Tool Arsenal Preview" 
+         style="width:100%; max-width:1100px; height:auto; display:block; margin-bottom:20px;">
+  </a>
 </p>
+
+<!-- Extra / Additional Preview -->
 <p align="center">
-  <img src="https://i.postimg.cc/D80kgt3Y/Screenshot-From-2026-01-31-00-47-32.png" style="width:100%; max-width:1100px; height:auto;">
+  <a href="https://i.postimg.cc/D80kgt3Y/Screenshot-From-2026-01-31-00-47-32.png" target="_blank">
+    <img src="https://i.postimg.cc/D80kgt3Y/Screenshot-From-2026-01-31-00-47-32.png" 
+         alt="Additional Preview" 
+         style="width:100%; max-width:1100px; height:auto; display:block; margin-bottom:20px;">
+  </a>
 </p>
+
 
 
 
